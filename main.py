@@ -17,7 +17,7 @@ async def set_commands(bot: Bot):
 
 
 async def main():
-    bot = Bot(config.token.get_secret_value(), parse_mode='html')
+    bot = Bot(config.bot_token.get_secret_value(), parse_mode='html')
     dp = Dispatcher()
     for file in [client_cmds, client_first_visit, client_second_visit, client_authorization]:
         dp.include_router(file.router)
