@@ -2,8 +2,6 @@ from asyncio import run
 from aiogram import Dispatcher, Bot
 from config import config
 from handlers import client_cmds, client_first_visit, client_second_visit, client_authorization
-
-
 from aiogram.types import BotCommand
 
 
