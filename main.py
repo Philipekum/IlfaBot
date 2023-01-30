@@ -1,7 +1,7 @@
 from asyncio import run
 from aiogram import Dispatcher, Bot
 from config import config
-from handlers import client_cmds, client_first_visit, client_second_visit, client_authorization
+from handlers import client_cmds, client_first_visit, client_second_visit, client_authorization, client_visit
 from aiogram.types import BotCommand
 
 
@@ -17,8 +17,9 @@ async def set_commands(bot: Bot):
 async def main():
     bot = Bot(config.bot_token.get_secret_value(), parse_mode='html')
     dp = Dispatcher()
-    for file in [client_cmds, client_first_visit, client_second_visit, client_authorization]:
-        dp.include_router(file.router)
+    # for file in [client_cmds, client_first_visit, client_second_visit, client_authorization]:
+    #     dp.include_router(file.router)
+    dp.include_router(client_visit.router)
 
     await set_commands(bot)
 
