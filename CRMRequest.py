@@ -17,6 +17,8 @@ class CRMRequest:
 
         self.dates_url = f'{self.__url}getScheduleCache/{self.__token}'
 
+        self.time_url = f'{self.__url}getSchedule/{self.__token}'
+
         self.post_data = {
             "client": {
                 "firstname": "Иван",
@@ -40,6 +42,15 @@ class CRMRequest:
                 "comment": "Позвоните мне"
             }
         }
+
+    def __get_employee_id(self, employee: str) -> str:
+        employee_data: list = self.employee_response.json()
+        name = employee.split(" ")
+        for emp in employee_data:
+            if emp["lastname"].casefold() == name[0].casefold() and emp["firstname"].casefold() == name[
+                1].casefold() and \
+                    name[2].casefold() == emp["patronymic"].casefold():
+                return str(emp["id"])
 
     def get_categories(self) -> list:
         data = self.service_data
@@ -91,14 +102,8 @@ class CRMRequest:
 
         return names
 
-    def get_dates(self, employee: str) -> list:
-        data = self.employee_response.json()
-        name = employee.split(' ')
-        employee_id = None
-        for emp in data:
-            if emp["lastname"].lower() == name[0].lower() and emp["firstname"].lower() == name[1].lower() and \
-                    name[2].lower() == emp["patronymic"].lower():
-                employee_id = str(emp["id"])
+    def get_dates(self, name: str) -> list:
+        employee_id = self.__get_employee_id(name)
 
         date_data = r.get(url=self.dates_url).json()
         dates = []
@@ -108,8 +113,15 @@ class CRMRequest:
 
         return dates
 
-    def get_times(self, doctor: str, date: str) -> list:
-        pass
+    def get_times(self, dates: list, name: str) -> list:
+        time = []
+        employee_id = self.__get_employee_id(name)
+        # реально ли нужно подавать списком??
+        for date in dates:
+            request = r.get(url=self.time_url, params={'date': date}).json()
+            time.append(request['employees'].get(employee_id))
+
+        return time
 
     # def search(self, request: str) -> list:
     #     coincidences = process.extract(request, self.services.keys())
@@ -126,5 +138,6 @@ if __name__ == '__main__':
     req = CRMRequest()
     # print(req.get_categories())
     # print(req.get_services('Хирургия'))
-    # print(req.get_employees('Удаление экзостоза'))
-    print(req.get_dates('Османова Фарида Ибрагимовна'))
+    # print(req.get_employees())
+    # print(req.get_dates('Шадов Азматгери Жангериевич'))
+    print(req.get_times(['2023-02-22'], 'Османов Ильяс Нариманович'))
