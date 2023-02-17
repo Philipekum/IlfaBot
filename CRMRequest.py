@@ -137,7 +137,7 @@ class CRMRequest:
 if __name__ == '__main__':
     req = CRMRequest()
     # print(req.get_categories())
-    # print(req.get_services('Хирургия'))
+    print(req.get_services())
     # print(req.get_employees())
     # print(req.get_dates('Шадов Азматгери Жангериевич'))
-    print(req.get_times(['2023-02-22'], 'Османов Ильяс Нариманович'))
+    # print(req.get_times(['2023-02-22'], 'Османов Ильяс Нариманович'))
