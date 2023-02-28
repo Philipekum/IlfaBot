@@ -47,10 +47,15 @@ class CRMRequest:
         employee_data: list = self.employee_response.json()
         name = employee.split(" ")
         for emp in employee_data:
-            if emp["lastname"].casefold() == name[0].casefold() and emp["firstname"].casefold() == name[
-                1].casefold() and \
-                    name[2].casefold() == emp["patronymic"].casefold():
+            if (emp["lastname"].casefold(), emp["firstname"].casefold(), emp["patronymic"].casefold()) == (
+                    name[0].casefold(), name[1].casefold(), name[2].casefold()):
                 return str(emp["id"])
+
+    def __get_service_id(self, service_name: str) -> str:
+        for service_category in self.service_data:
+            for service in service_category["services"]:
+                if service["name"] == service_name:
+                    return str(service["id"])
 
     def get_categories(self) -> list:
         data = self.service_data
@@ -84,18 +89,16 @@ class CRMRequest:
         employee_data: list = self.employee_response.json()
         names = []
 
-        # Return all employees in default
-        if service_name is None:
-            for emp in employee_data:
+        # picked_service_data: dict = [x for x in self.service_data if x.get("name") == service_name][0]
+        # service_id: int = picked_service_data.get("id")
+        service_id = self.__get_service_id(service_name=service_name)
+
+        for emp in employee_data:
+            # Return all employees in default
+            if service_name is None:
                 name = emp["lastname"].title() + " " + emp["firstname"].title() + " " + emp["patronymic"].title()
                 names.append(name)
 
-            return names
-
-        picked_service_data: dict = [x for x in self.service_data if x.get("name") == service_name][0]
-        service_id: int = picked_service_data.get("id")
-
-        for emp in employee_data:
             if service_id in emp["serviceEmployeesIds"]:
                 name = emp["lastname"].title() + " " + emp["firstname"].title() + " " + emp["patronymic"].title()
                 names.append(name)
@@ -104,7 +107,6 @@ class CRMRequest:
 
     def get_dates(self, name: str) -> list:
         employee_id = self.__get_employee_id(name)
-
         date_data = r.get(url=self.dates_url).json()
         dates = []
         for date in date_data:
@@ -137,7 +139,9 @@ class CRMRequest:
 if __name__ == '__main__':
     req = CRMRequest()
     # print(req.get_categories())
-    print(req.get_services())
+    # print(req.get_services())
     # print(req.get_employees())
+    # print(req._CRMRequest__get_service_id('Лечение кариеса средней степени сложности'))
+    print(req.get_employees('Восстановление молочного зуба металлической коронкой'))
     # print(req.get_dates('Шадов Азматгери Жангериевич'))
     # print(req.get_times(['2023-02-22'], 'Османов Ильяс Нариманович'))

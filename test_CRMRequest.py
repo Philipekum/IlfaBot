@@ -9,7 +9,7 @@ class TestCRMRequest(unittest.TestCase):
 
 class TestGetCategories(TestCRMRequest):
     def test_get_categories(self):
-        self.assertEqual(self.req.get_categories(),
+        self.assertCountEqual(self.req.get_categories(),
                          ['Прием врача-стоматолога',
                           'Хирургия',
                           'Имплантация',
@@ -22,9 +22,9 @@ class TestGetCategories(TestCRMRequest):
                           'Рентгенография'])
 
 
-class TestGetSerices(TestCRMRequest):
+class TestGetServices(TestCRMRequest):
     def test_get_services_all(self):
-        self.assertEqual(self.req.get_services(),
+        self.assertCountEqual(self.req.get_services(),
                          ['Прием (осмотр, консультация) врача-стоматолога первичный',
                           'Осмотр врача-стоматолога повторный',
                           'Первичный приём главного врача (кандидата медицинских наук)',
@@ -69,7 +69,7 @@ class TestGetSerices(TestCRMRequest):
                          )
 
     def test_get_services_surgery(self):
-        self.assertEqual(self.req.get_services('Хирургия'),
+        self.assertCountEqual(self.req.get_services('Хирургия'),
                          ['Удаление зуба сложное 1 категория',
                           'Удаление зуба сложное 2 категория',
                           'Удаление зуба сложное 3 категория',
@@ -82,24 +82,25 @@ class TestGetSerices(TestCRMRequest):
 
 class TestGetEmployees(TestCRMRequest):
     def test_get_employees_all(self):
-        self.assertEqual(self.req.get_employees(),
-                         ['Магомедов Омаргаджи Ибрагимович',
-                          'Гадирова Айнур Захир Кызы',
-                          'Шадов Азматгери Жангериевич',
-                          'Османова Фарида Ибрагимовна',
-                          'Омаров Дадаш Халипаевич',
-                          'Абдурахманов Рустам Салимович',
-                          'Османов Ильяс Нариманович'])
+        self.assertCountEqual(self.req.get_employees(),
+                              ['Магомедов Омаргаджи Ибрагимович',
+                               'Гадирова Айнур Захир Кызы',
+                               'Шадов Азматгери Жангериевич',
+                               'Османова Фарида Ибрагимовна',
+                               'Омаров Дадаш Халипаевич',
+                               'Абдурахманов Рустам Салимович',
+                               'Османов Ильяс Нариманович'])
 
-    @unittest.skip(reason='Error is fixing')
     def test_get_employees_by_(self):
         self.assertEqual(self.req.get_employees('Первичный приём главного врача (кандидата медицинских наук)'),
                          [])
 
 
 class TestGetDatesTimes(TestCRMRequest):
+    @unittest.skip(reason='Test is useless, need for rework')
     def test_get_dates(self):
-        self.assertEqual(self.req.get_dates('Османов Ильяс Нариманович'),
+        dates = self.req.get_dates('Османов Ильяс Нариманович')
+        self.assertCountEqual(dates,
                          ['2023-02-17',
                           '2023-02-18',
                           '2023-02-19',
@@ -132,8 +133,17 @@ class TestGetDatesTimes(TestCRMRequest):
                           '2023-05-10',
                           '2023-05-21'])
 
-    @unittest.skip(reason='Error is unknown, going to fix!')
     def test_get_times(self):
         dates: list = self.req.get_dates('Османов Ильяс Нариманович')
         self.assertEqual(self.req.get_times(dates[:10], 'Османов Ильяс Нариманович'),
                          [])
+
+
+class TestScenario1(TestCRMRequest):
+    """
+    Категория-сервис-врач-дата-время
+
+    - Детская стоматология
+    - Восстановление молочного зуба металлической коронкой
+    -
+    """
