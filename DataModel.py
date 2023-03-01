@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, List, Dict
-from datetime import date
+from typing import Any, List
 
 
 class Service(BaseModel):
@@ -42,7 +41,3 @@ class Employee(BaseModel):
     positionName: str
     extraCharge: float
     serviceEmployeesIds: list
-
-
-class Dates(BaseModel):
-    date: Dict[date, Dict[int, bool]]
