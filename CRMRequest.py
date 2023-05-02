@@ -106,18 +106,20 @@ class CRMRequest:
 
                 return employees
 
-    def get_dates(self, employee_name: str) -> list[datetime.date]:
+    def get_dates(self, employee_name: str) -> list[str]:
         """Returns list of free dates of an employee"""
         employee_id = self.__get_employee_id(employee_name)
 
         date_data: dict[str, dict[str, bool]] = r.get(url=self.dates_url).json()
 
         free_dates = []
+        week = {0: 'ПН', 1: 'ВТ', 2: 'СР', 3: 'ЧТ', 4: 'ПТ', 5: 'СБ', 6: 'ВС'}
 
         for free_date, ids in date_data.items():
             if employee_id in ids:
                 free_date = datetime.strptime(free_date, '%Y-%m-%d')
-                free_dates.append(free_date)
+                formated_date = week[free_date.weekday()] + free_date.strftime(' %d.%m')
+                free_dates.append(formated_date)
 
         return free_dates
 

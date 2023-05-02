@@ -48,12 +48,11 @@ def promo_kb() -> InlineKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def listed_kb(elements: list[str]) -> ReplyKeyboardMarkup:
+def listed_kb(elements: list[str], col: int = 1) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     for element in elements:
         kb.button(text=element)
 
-    kb.adjust(1)
+    kb.adjust(col)
 
     return kb.as_markup(resize_keyboard=True)
-
