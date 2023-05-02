@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
 from CRMRequest import CRMRequest
-from keyboards.client_kb import categories_kb, services_kb
+from keyboards.client_kb import listed_kb
 
 router = Router()
 
@@ -22,64 +22,29 @@ class ClientAction(StatesGroup):
 
 
 @router.message(Text('Запись', ignore_case=True))
-async def reg_start(message: types.Message, state: FSMContext):
+async def show_categories(message: types.Message, state: FSMContext):
     await state.set_state(ClientAction.wait_category)
-    try:
-        await message.answer(text='Выбрать категорию услуг:\n', reply_markup=categories_kb())
-    except:
-        await state.clear()
-        await message.answer(text='Произошла ошибка!')
+    await message.answer(text='Выбрать категорию услуг:\n', reply_markup=listed_kb(req.get_categories()))
 
 
 @router.message(ClientAction.wait_category)
-async def got_category(message: types.Message, state: FSMContext):
+async def show_services(message: types.Message, state: FSMContext):
     await state.set_state(ClientAction.wait_service)
-    try:
-        picked_category = message.text
-        await message.answer(text='Выбрать услугу:\n', reply_markup=services_kb(picked_category))
-    except:
-        await state.clear()
-        await message.answer(text='Произошла ошибка!')
+    picked_category = message.text
+    await message.answer(text='Выбрать услугу:\n', reply_markup=listed_kb(req.get_services(picked_category)))
 
 
 @router.message(ClientAction.wait_service)
-async def got_service(message: types.Message, state: FSMContext):
+async def show_doctors(message: types.Message, state: FSMContext):
+    picked_service = message.text
+    await state.update_data(service=picked_service)
     await state.set_state(ClientAction.wait_doctor)
-    await state.update_data(picked_service=message.text)
-
-
-    #   вывести список врачей с такой услугой ниже
-    await message.answer(text='Выбрать врача:')
+    await message.answer(text='Выбрать врача:\n', reply_markup=listed_kb(req.get_employees(picked_service)))
 
 
 @router.message(ClientAction.wait_doctor)
-async def got_doctor(message: types.Message, state: FSMContext):
+async def show_dates(message: types.Message, state: FSMContext):
+    picked_doctor = message.text
+    await state.update_data(employee=picked_doctor)
     await state.set_state(ClientAction.wait_time)
-    #   сохранить врача в память
-    #   сделать запрос про доступные даты и время
-    await message.answer(text='Выбрать время:')
-
-
-@router.message(ClientAction.wait_time)
-async def got_time(message: types.Message, state: FSMContext):
-    await state.set_state(ClientAction.wait_name)
-    #   занести дату и время в память
-    await message.answer(text='Введите Ваше ФИО:')
-
-
-@router.message(ClientAction.wait_name)
-async def got_name(message: types.Message, state: FSMContext):
-    await state.set_state(ClientAction.wait_number)
-    await message.answer(text='Введите Ваш номер телефона в формате +7(xxx)xxx-xx-xx:')
-
-
-@router.message(ClientAction.wait_number)
-async def got_number(message: types.Message, state: FSMContext):
-    await state.set_state(ClientAction.wait_commentary)
-    await message.answer(text='Введите комментарии:')
-
-
-@router.message(ClientAction.wait_commentary)
-async def got_commentary(message: types.Message, state: FSMContext):
-    await state.set_state(ClientAction.wait_confirm)
-    await message.answer(text='Подтвердите правильность введенных данных и подтвердите обработку персональных данных.')
+    await message.answer(text='Выбрать дату:\n', reply_markup=listed_kb(req.get_dates(picked_doctor)))
