@@ -123,12 +123,20 @@ class CRMRequest:
 
         return free_dates
 
-    def get_times(self, date_obj: datetime.date, employee_name: str) -> list[datetime]:
+    def get_times(self, date_obj: datetime, employee_name: str) -> list[str] | None:
         """Returns list of free times of a date and of an employee"""
         free_times = []
+        time_intervals = []
         employee_id = self.__get_employee_id(employee_name)
-        time_intervals = r.get(url=self.time_url,
-                               params={"date": date_obj.strftime('%Y-%m-%d')}).json()["employees"][employee_id]
+        params = {"date": date_obj.strftime('%Y-%m-%d')}
+        all_time_intervals = r.get(url=self.time_url,
+                                   params=params).json()
+
+        if all_time_intervals["employees"]:
+            if employee_id in all_time_intervals["employees"]:
+                time_intervals = all_time_intervals["employees"][employee_id]
+        else:
+            return None
 
         for interval in time_intervals:
             start_time = datetime.combine(date_obj,
@@ -138,23 +146,16 @@ class CRMRequest:
                                         datetime.strptime(interval['endTime'], '%H:%M').time())
 
             while start_time <= end_time:
-                free_times.append(start_time)
+                free_times.append(start_time.strftime('%H:%M'))
                 start_time += timedelta(minutes=30)
 
         return free_times
 
-    # def search(self, request: str) -> list:
-    #     coincidences = process.extract(request, self.services.keys())
-    #     res = []
-    #
-    #     for i in coincidences:
-    #         if i[1] >= 75:
-    #             res.append(i[0])
-    #
-    #     return res
 
-
-if __name__ == '__main__':
-    req = CRMRequest()
-    # print(req.get_employees('Частично/Полный съемный акриловый протез')) важно
-    print(req.get_dates('Османов Ильяс Нариманович'))
+# if __name__ == '__main__':
+#     req = CRMRequest()
+#     # print(req.get_employees('Частично/Полный съемный акриловый протез')) важно
+#
+#     # print(req.get_dates('Османов Ильяс Нариманович'))
+#     d = datetime(2023, 5, 25, 0, 0)
+#     print(req.get_times(d, 'Османов Ильяс Нариманович'))

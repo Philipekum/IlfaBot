@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -51,7 +50,9 @@ async def show_dates(message: types.Message, state: FSMContext):
 
 @router.message(ClientAction.wait_date)
 async def show_times(message: types.Message, state: FSMContext):
-    picked_date = datetime.strptime(f'{datetime.now().year} {message.text}', '%Y %a %d.%m')
+    picked_date = datetime.strptime(f'{datetime.now().year} {message.text[3:]}', '%Y %d.%m')
     await state.update_data(date=picked_date)
     await state.set_state(ClientAction.wait_time)
-
+    user_data = await state.get_data()
+    await message.answer(text='Выбрать время:\n',
+                         reply_markup=listed_kb(req.get_times(picked_date, user_data['employee']), col=4))
