@@ -3,7 +3,6 @@ import requests as r
 from config import config
 from DataModel import Category, Employee
 from pydantic import parse_obj_as
-from typing import List, Dict
 from datetime import datetime, timedelta
 
 
@@ -14,11 +13,11 @@ class CRMRequest:
 
         self.service_url = f'{self.__url}getServices/{self.__token}'
         self.service_response = r.get(url=self.service_url)
-        self.service_data = parse_obj_as(List[Category], self.service_response.json())
+        self.service_data = parse_obj_as(list[Category], self.service_response.json())
 
         self.employee_url = f'{self.__url}getEmployees/{self.__token}'
         self.employee_response = r.get(url=self.employee_url)
-        self.employee_data = parse_obj_as(List[Employee], self.employee_response.json())
+        self.employee_data = parse_obj_as(list[Employee], self.employee_response.json())
 
         self.dates_url = f'{self.__url}getScheduleCache/{self.__token}'
 
@@ -63,7 +62,7 @@ class CRMRequest:
                 if service.name == service_name:
                     return service.id
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
         picked_categories = []
         for category in self.service_data:
@@ -71,7 +70,7 @@ class CRMRequest:
 
         return picked_categories
 
-    def get_services(self, category_name: str = None) -> List[str]:
+    def get_services(self, category_name: str = None) -> list[str]:
         """Returns service of a category or all services in default"""
         picked_services = []
 
@@ -89,7 +88,7 @@ class CRMRequest:
 
                 return picked_services
 
-    def get_employees(self, service_name: str = None) -> List[str]:
+    def get_employees(self, service_name: str = None) -> list[str]:
         """Return list of employees of service or all employees in default"""
         employees = []
         if service_name is None:
@@ -107,27 +106,37 @@ class CRMRequest:
 
                 return employees
 
-    def get_dates(self, employee_name: str) -> List[datetime.date]:
+    def get_dates(self, employee_name: str) -> list[str]:
         """Returns list of free dates of an employee"""
         employee_id = self.__get_employee_id(employee_name)
 
-        date_data: Dict[str, Dict[str, bool]] = r.get(url=self.dates_url).json()
+        date_data: dict[str, dict[str, bool]] = r.get(url=self.dates_url).json()
 
         free_dates = []
+        week = {0: 'ПН', 1: 'ВТ', 2: 'СР', 3: 'ЧТ', 4: 'ПТ', 5: 'СБ', 6: 'ВС'}
 
         for free_date, ids in date_data.items():
             if employee_id in ids:
-                free_date = datetime.strptime(free_date, '%Y-%m-%d').date()
-                free_dates.append(free_date)
+                free_date = datetime.strptime(free_date, '%Y-%m-%d')
+                formated_date = week[free_date.weekday()] + free_date.strftime(' %d.%m')
+                free_dates.append(formated_date)
 
         return free_dates
 
-    def get_times(self, date_obj: datetime.date, employee_name: str) -> List[datetime]:
+    def get_times(self, date_obj: datetime, employee_name: str) -> list[str] | None:
         """Returns list of free times of a date and of an employee"""
         free_times = []
+        time_intervals = []
         employee_id = self.__get_employee_id(employee_name)
-        time_intervals = r.get(url=self.time_url,
-                               params={"date": date_obj.strftime('%Y-%m-%d')}).json()["employees"][employee_id]
+        params = {"date": date_obj.strftime('%Y-%m-%d')}
+        all_time_intervals = r.get(url=self.time_url,
+                                   params=params).json()
+
+        if all_time_intervals["employees"]:
+            if employee_id in all_time_intervals["employees"]:
+                time_intervals = all_time_intervals["employees"][employee_id]
+        else:
+            return None
 
         for interval in time_intervals:
             start_time = datetime.combine(date_obj,
@@ -137,24 +146,16 @@ class CRMRequest:
                                         datetime.strptime(interval['endTime'], '%H:%M').time())
 
             while start_time <= end_time:
-                free_times.append(start_time)
+                free_times.append(start_time.strftime('%H:%M'))
                 start_time += timedelta(minutes=30)
 
         return free_times
 
-    # def search(self, request: str) -> list:
-    #     coincidences = process.extract(request, self.services.keys())
-    #     res = []
-    #
-    #     for i in coincidences:
-    #         if i[1] >= 75:
-    #             res.append(i[0])
-    #
-    #     return res
 
-
-if __name__ == '__main__':
-    req = CRMRequest()
-    dates = req.get_dates('Гадирова Айнур Захир Кызы')
-    print(req.get_times(dates[0], 'Гадирова Айнур Захир Кызы'))
-
+# if __name__ == '__main__':
+#     req = CRMRequest()
+#     # print(req.get_employees('Частично/Полный съемный акриловый протез')) важно
+#
+#     # print(req.get_dates('Османов Ильяс Нариманович'))
+#     d = datetime(2023, 5, 25, 0, 0)
+#     print(req.get_times(d, 'Османов Ильяс Нариманович'))

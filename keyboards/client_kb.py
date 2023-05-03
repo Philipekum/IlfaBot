@@ -1,8 +1,5 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup
-from CRMRequest import CRMRequest
-
-req = CRMRequest()
 
 
 def main_kb() -> ReplyKeyboardMarkup:
@@ -51,23 +48,11 @@ def promo_kb() -> InlineKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def categories_kb() -> ReplyKeyboardMarkup:
+def listed_kb(elements: list[str], col: int = 1) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    categories = req.categories
-    for category in categories:
-        kb.button(text=category)
+    for element in elements:
+        kb.button(text=element)
 
-    kb.adjust(1)
-
-    return kb.as_markup(resize_keyboard=True)
-
-
-def services_kb(category: str) -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardBuilder()
-    service_names = req.get_service_names(category)
-    for name in service_names:
-        kb.button(text=name)
-
-    kb.adjust(1)
+    kb.adjust(col)
 
     return kb.as_markup(resize_keyboard=True)
