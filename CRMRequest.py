@@ -1,9 +1,10 @@
+import pydantic
 import requests as r
-# from fuzzywuzzy import process
 from config import config
 from DataModel import Category, Employee
 from pydantic import parse_obj_as
 from datetime import datetime, timedelta
+from typing import Type
 
 
 class CRMRequest:
@@ -11,41 +12,62 @@ class CRMRequest:
         self.__url = config.url.get_secret_value()
         self.__token = config.crm_token.get_secret_value()
 
-        self.service_url = f'{self.__url}getServices/{self.__token}'
-        self.service_response = r.get(url=self.service_url)
-        self.service_data = parse_obj_as(list[Category], self.service_response.json())
-
-        self.employee_url = f'{self.__url}getEmployees/{self.__token}'
-        self.employee_response = r.get(url=self.employee_url)
-        self.employee_data = parse_obj_as(list[Employee], self.employee_response.json())
-
+        service_url = f'{self.__url}getServices/{self.__token}'
+        employee_url = f'{self.__url}getEmployees/{self.__token}'
         self.dates_url = f'{self.__url}getScheduleCache/{self.__token}'
-
         self.time_url = f'{self.__url}getSchedule/{self.__token}'
 
-        self.post_data = {
-            "client": {
-                "firstname": "Иван",
-                "surname": "Иванов",
-                "patronymic": "",
-                "telephone": "+7(904)243-23-43",
-                "proccesingOfPersonalData": True
-            },
-            "visitItems": [
-                {
-                    "employeeId": "2",
-                    "serviceId": 163,
-                    "startTime": "14:00"
-                }
-            ],
-            "employee": {
-                "id": 0
-            },
-            "visit": {
-                "date": "2022-01-28",
-                "comment": "Позвоните мне"
-            }
-        }
+        try:
+            self.service_data = self.__get_parsed_data(service_url, Category)
+
+        except (ConnectionError, ValueError) as e:
+            print(e)
+
+        try:
+            self.employee_data = self.__get_parsed_data(employee_url, Employee)
+
+        except (ConnectionError, ValueError) as e:
+            print(e)
+
+        # self.post_data = {
+        #     "client": {
+        #         "firstname": "Иван",
+        #         "surname": "Иванов",
+        #         "patronymic": "",
+        #         "telephone": "+7(904)243-23-43",
+        #         "proccesingOfPersonalData": True
+        #     },
+        #     "visitItems": [
+        #         {
+        #             "employeeId": "2",
+        #             "serviceId": 163,
+        #             "startTime": "14:00"
+        #         }
+        #     ],
+        #     "employee": {
+        #         "id": 0
+        #     },
+        #     "visit": {
+        #         "date": "2022-01-28",
+        #         "comment": "Позвоните мне"
+        #     }
+        # }
+
+    @staticmethod
+    def __get_parsed_data(url: str, model: Type[pydantic.BaseModel]) -> list[pydantic.BaseModel]:
+        try:
+            response = r.get(url)
+            response.raise_for_status()
+            data = response.json()
+            model.validate(data)
+
+            return parse_obj_as(list[model], data)
+
+        except r.exceptions.RequestException:
+            raise ConnectionError(f'Ошибка при получении данных: {url}')
+
+        except pydantic.ValidationError:
+            raise ValueError(f'Ошибка при обработке данных: {url}')
 
     def __get_employee_id(self, employee_name: str) -> str:
         """Gets id of employee as str"""
@@ -150,7 +172,6 @@ class CRMRequest:
                 start_time += timedelta(minutes=30)
 
         return free_times
-
 
 # if __name__ == '__main__':
 #     req = CRMRequest()
