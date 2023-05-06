@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, List
+from typing import Any
 
 
 class Service(BaseModel):
@@ -28,7 +28,7 @@ class Category(BaseModel):
     name: str
     parentID: Any
     haveServices: bool
-    services: List[Service]
+    services: list[Service]
     children: list
     ozOrder: int
 

@@ -1,10 +1,11 @@
 import pydantic
 import requests as r
+
+import DataModel
 from config import config
 from DataModel import Category, Employee
 from pydantic import parse_obj_as
 from datetime import datetime, timedelta
-from typing import Type
 
 
 class CRMRequest:
@@ -18,13 +19,13 @@ class CRMRequest:
         self.time_url = f'{self.__url}getSchedule/{self.__token}'
 
         try:
-            self.service_data = self.__get_parsed_data(service_url, Category)
+            self.service_data = self._get_parsed_data(service_url, Category)
 
         except (ConnectionError, ValueError) as e:
             print(e)
 
         try:
-            self.employee_data = self.__get_parsed_data(employee_url, Employee)
+            self.employee_data = self._get_parsed_data(employee_url, Employee)
 
         except (ConnectionError, ValueError) as e:
             print(e)
@@ -54,12 +55,14 @@ class CRMRequest:
         # }
 
     @staticmethod
-    def __get_parsed_data(url: str, model: Type[pydantic.BaseModel]) -> list[pydantic.BaseModel]:
+    def _get_parsed_data(url: str, model: DataModel.Any) -> list:
         try:
             response = r.get(url)
             response.raise_for_status()
             data = response.json()
-            model.validate(data)
+
+            for element in data:
+                model.validate(element)
 
             return parse_obj_as(list[model], data)
 
@@ -69,20 +72,24 @@ class CRMRequest:
         except pydantic.ValidationError:
             raise ValueError(f'Ошибка при обработке данных: {url}')
 
-    def __get_employee_id(self, employee_name: str) -> str:
+    def _get_employee_id(self, employee_name: str) -> str:
         """Gets id of employee as str"""
-        employee_name = employee_name.upper().split(" ")
+        employee_name = employee_name.casefold().split(" ")
         employee_name = [employee_name.pop(0), employee_name.pop(0), " ".join(employee_name)]
         for employee in self.employee_data:
-            if list(map(str.upper, [employee.lastname, employee.firstname, employee.patronymic])) == employee_name:
+            if list(map(str.casefold, [employee.lastname, employee.firstname, employee.patronymic])) == employee_name:
                 return str(employee.id)
 
-    def __get_service_id(self, service_name: str) -> int:
+        raise ValueError(f'Employee {employee_name} not found')
+
+    def _get_service_id(self, service_name: str) -> int:
         """Gets id of service"""
         for category in self.service_data:
             for service in category.services:
-                if service.name == service_name:
+                if service.name.casefold() == service_name.casefold():
                     return service.id
+
+        raise ValueError(f'Service {service_name} not found')
 
     def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
@@ -120,7 +127,7 @@ class CRMRequest:
 
             return employees
 
-        service_id = self.__get_service_id(service_name)
+        service_id = self._get_service_id(service_name)
         for employee in self.employee_data:
             if service_id in employee.serviceEmployeesIds:
                 full_name = ' '.join([employee.lastname, employee.firstname, employee.patronymic]).title()
@@ -130,7 +137,7 @@ class CRMRequest:
 
     def get_dates(self, employee_name: str) -> list[str]:
         """Returns list of free dates of an employee"""
-        employee_id = self.__get_employee_id(employee_name)
+        employee_id = self._get_employee_id(employee_name)
 
         date_data: dict[str, dict[str, bool]] = r.get(url=self.dates_url).json()
 
@@ -149,7 +156,7 @@ class CRMRequest:
         """Returns list of free times of a date and of an employee"""
         free_times = []
         time_intervals = []
-        employee_id = self.__get_employee_id(employee_name)
+        employee_id = self._get_employee_id(employee_name)
         params = {"date": date_obj.strftime('%Y-%m-%d')}
         all_time_intervals = r.get(url=self.time_url,
                                    params=params).json()
@@ -173,10 +180,7 @@ class CRMRequest:
 
         return free_times
 
-# if __name__ == '__main__':
-#     req = CRMRequest()
-#     # print(req.get_employees('Частично/Полный съемный акриловый протез')) важно
-#
-#     # print(req.get_dates('Османов Ильяс Нариманович'))
-#     d = datetime(2023, 5, 25, 0, 0)
-#     print(req.get_times(d, 'Османов Ильяс Нариманович'))
+
+if __name__ == '__main__':
+    req = CRMRequest()
+    print(req.service_data)
