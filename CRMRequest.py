@@ -1,7 +1,7 @@
 import requests as r
-import DataModel
 from config import config
-from DataModel import Category, Employee, Date
+import DataModel
+from DataModel import Category, Employee, Date, ScheduleData
 from pydantic import parse_obj_as, ValidationError
 from datetime import datetime, timedelta
 
@@ -13,11 +13,11 @@ class CRMRequest:
 
         service_url = f'{self.__url}getServices/{self.__token}'
         employee_url = f'{self.__url}getEmployees/{self.__token}'
-        self.dates_url = f'{self.__url}getScheduleCache/{self.__token}'
-        self.time_url = f'{self.__url}getSchedule/{self.__token}'
+        self._dates_url = f'{self.__url}getScheduleCache/{self.__token}'
+        self._time_url = f'{self.__url}getSchedule/{self.__token}'
 
-        self.service_data = self._get_parsed_data(service_url, Category)
-        self.employee_data = self._get_parsed_data(employee_url, Employee)
+        self._service_data = self._get_parsed_data(service_url, Category)
+        self._employee_data = self._get_parsed_data(employee_url, Employee)
 
         # self.post_data = {
         #     "client": {
@@ -44,9 +44,14 @@ class CRMRequest:
         # }
 
     @staticmethod
-    def _get_parsed_data(url: str, model: DataModel.Any) -> list | dict:
+    def _get_parsed_data(url: str, model: DataModel.Any, params: dict = None) -> DataModel.Any:
+        """
+        Returns requests parsed with some of DataModel data models.
+        Polymorphic behaviour for list of dicts and dicts
+        """
         try:
-            response = r.get(url)
+            response = r.get(url=url,
+                             params=params)
             response.raise_for_status()
             data = response.json()
 
@@ -68,18 +73,18 @@ class CRMRequest:
             raise ValueError(f'Data processing Error: {model}')
 
     def _get_employee_id(self, employee_name: str) -> int:
-        """Gets id of employee as str"""
+        """Returns id of employee by name"""
         employee_name = employee_name.casefold().split(" ")
         employee_name = [employee_name.pop(0), employee_name.pop(0), " ".join(employee_name)]
-        for employee in self.employee_data:
+        for employee in self._employee_data:
             if list(map(str.casefold, [employee.lastname, employee.firstname, employee.patronymic])) == employee_name:
                 return employee.id
 
         raise ValueError(f'Employee not found: {employee_name}')
 
     def _get_service_id(self, service_name: str) -> int:
-        """Gets id of service"""
-        for category in self.service_data:
+        """Returns id of service by name"""
+        for category in self._service_data:
             for service in category.services:
                 if service.name.casefold() == service_name.casefold():
                     return service.id
@@ -89,7 +94,7 @@ class CRMRequest:
     def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
         picked_categories = []
-        for category in self.service_data:
+        for category in self._service_data:
             picked_categories.append(category.name)
 
         return picked_categories
@@ -98,7 +103,7 @@ class CRMRequest:
         """Returns service of a category or all services in default"""
         picked_services = []
 
-        for category in self.service_data:
+        for category in self._service_data:
             if category_name is None or category.name == category_name:
                 for service in category.services:
                     picked_services.append(service.name)
@@ -109,60 +114,64 @@ class CRMRequest:
         return picked_services
 
     def get_employees(self, service_name: str = None) -> list[str]:
-        """Return list of employees of service or all employees in default"""
+        """Returns list of employees of service or all employees in default"""
         employees = []
         service_id = None if service_name is None else self._get_service_id(service_name)
 
-        for employee in self.employee_data:
+        for employee in self._employee_data:
             if service_name is None or service_id in employee.serviceEmployeesIds:
                 full_name = ' '.join([employee.lastname, employee.firstname, employee.patronymic]).title()
                 employees.append(full_name)
 
         return employees
 
-    def get_dates(self, employee_name: str) -> list[str]:
-        """Returns list of free dates of an employee"""
-        employee_id = self._get_employee_id(employee_name)
-        data = self._get_parsed_data(self.dates_url, Date)
-        week = {0: 'ПН', 1: 'ВТ', 2: 'СР', 3: 'ЧТ', 4: 'ПТ', 5: 'СБ', 6: 'ВС'}
-        free_dates = []
+    def _check_dates(self, date_to_check: datetime, employee_id: int) -> bool:
+        """
+        Returns True if date contains employee.
+        Due to API restrictions, getSchedule method does not take into account that all times can be busy
+        """
+        params = {"date": date_to_check.strftime('%Y-%m-%d')}
+        all_times: ScheduleData = self._get_parsed_data(self._time_url,
+                                                        ScheduleData,
+                                                        params=params)
 
+        return employee_id in all_times.employees
+
+    def get_raw_dates(self, employee_name: str) -> list[datetime]:
+        """Returns list of free dates of an employee in datetime format"""
+        employee_id = self._get_employee_id(employee_name)
+        data = self._get_parsed_data(self._dates_url, Date)
+        free_dates = []
         for free_date, ids in data.items():
             if employee_id in ids:
-                free_date = week[free_date.weekday()] + datetime.strftime(free_date, ' %d.%m')
-                free_dates.append(free_date)
+                if self._check_dates(free_date, employee_id):
+                    free_dates.append(free_date)
 
         return free_dates
 
-    def get_times(self, date_obj: datetime, employee_name: str) -> list[str] | None:
+    def get_times(self, free_date: datetime, employee_name: str) -> list[datetime]:
         """Returns list of free times of a date and of an employee"""
         free_times = []
-        time_intervals = []
         employee_id = self._get_employee_id(employee_name)
-        params = {"date": date_obj.strftime('%Y-%m-%d')}
-        all_time_intervals = r.get(url=self.time_url,
-                                   params=params).json()
 
-        if all_time_intervals["employees"]:
-            if employee_id in all_time_intervals["employees"]:
-                time_intervals = all_time_intervals["employees"][employee_id]
-        else:
-            return None
+        params = {"date": free_date.strftime('%Y-%m-%d')}
+        schedule_data: ScheduleData = self._get_parsed_data(url=self._time_url,
+                                                            model=ScheduleData,
+                                                            params=params)
 
-        for interval in time_intervals:
-            start_time = datetime.combine(date_obj,
-                                          datetime.strptime(interval['startTime'], '%H:%M').time())
-
-            end_time = datetime.combine(date_obj,
-                                        datetime.strptime(interval['endTime'], '%H:%M').time())
+        for time_intervals in schedule_data.employees.get(employee_id):
+            start_time = datetime.combine(free_date.date(), time_intervals.start_time)
+            end_time = datetime.combine(free_date.date(), time_intervals.end_time)
 
             while start_time <= end_time:
-                free_times.append(start_time.strftime('%H:%M'))
+                free_times.append(start_time)
                 start_time += timedelta(minutes=30)
 
         return free_times
 
 
 if __name__ == '__main__':
+    name = 'Османов Ильяс Нариманович'
     req = CRMRequest()
-    print(req.get_dates('Османов Ильяс Нариманович'))
+    # print(req.get_raw_dates(name))
+    # print(*req.get_times(datetime(2023, 6, 8), name), sep='\n')
