@@ -6,6 +6,14 @@ from pydantic import parse_obj_as, ValidationError
 from datetime import datetime, timedelta
 
 
+class ElementNotFoundError(Exception):
+    def __init__(self, element):
+        self.element = element
+
+    def __str__(self):
+        return f'Element not found: {self.element}'
+
+
 class CRMRequest:
     def __init__(self):
         self.__url = config.url.get_secret_value()
@@ -75,12 +83,18 @@ class CRMRequest:
     def _get_employee_id(self, employee_name: str) -> int:
         """Returns id of employee by name"""
         employee_name = employee_name.casefold().split(" ")
+
+        if len(employee_name) < 3:
+            raise ElementNotFoundError(employee_name)
+
+        # Some employees can have full name of 4 words and more
         employee_name = [employee_name.pop(0), employee_name.pop(0), " ".join(employee_name)]
+
         for employee in self._employee_data:
             if list(map(str.casefold, [employee.lastname, employee.firstname, employee.patronymic])) == employee_name:
                 return employee.id
 
-        raise ValueError(f'Employee not found: {employee_name}')
+        raise ElementNotFoundError(employee_name)
 
     def _get_service_id(self, service_name: str) -> int:
         """Returns id of service by name"""
@@ -89,7 +103,7 @@ class CRMRequest:
                 if service.name.casefold() == service_name.casefold():
                     return service.id
 
-        raise ValueError(f'Service not found: {service_name}')
+        raise ElementNotFoundError(service_name)
 
     def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
@@ -109,7 +123,7 @@ class CRMRequest:
                     picked_services.append(service.name)
 
         if not picked_services:
-            raise ValueError(f'No services found in category: {category_name}')
+            raise ElementNotFoundError(category_name)
 
         return picked_services
 
@@ -160,8 +174,8 @@ class CRMRequest:
                                                             params=params)
 
         for time_intervals in schedule_data.employees.get(employee_id):
-            start_time = datetime.combine(free_date.date(), time_intervals.start_time)
-            end_time = datetime.combine(free_date.date(), time_intervals.end_time)
+            start_time = datetime.combine(free_date, time_intervals.start_time)
+            end_time = datetime.combine(free_date, time_intervals.end_time)
 
             while start_time <= end_time:
                 free_times.append(start_time)
@@ -173,5 +187,4 @@ class CRMRequest:
 if __name__ == '__main__':
     name = 'Османов Ильяс Нариманович'
     req = CRMRequest()
-    # print(req.get_raw_dates(name))
-    # print(*req.get_times(datetime(2023, 6, 8), name), sep='\n')
+    print(req.get_services())
