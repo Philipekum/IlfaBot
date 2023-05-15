@@ -3,12 +3,12 @@ from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
-from CRMRequest import CRMRequest
+from CrmRequest import CrmRequest
 from keyboards.client_kb import listed_kb
 
 router = Router()
 
-req = CRMRequest()
+req = CrmRequest()
 
 
 class ClientAction(StatesGroup):
