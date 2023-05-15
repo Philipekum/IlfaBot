@@ -1,11 +1,11 @@
 from unittest import TestCase, skip
-from CRMRequest import CRMRequest, ElementNotFoundError
+from CrmRequest import CrmRequest, ElementNotFoundError
 from datetime import datetime, date
 
 
 class TestCRMRequest(TestCase):
     def setUp(self) -> None:
-        self.req = CRMRequest()
+        self.req = CrmRequest()
 
 
 class TestGetCategories(TestCRMRequest):

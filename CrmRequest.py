@@ -14,7 +14,7 @@ class ElementNotFoundError(Exception):
         return f'Element not found: {self.element}'
 
 
-class CRMRequest:
+class CrmRequestBackend:
     def __init__(self):
         self.__url = config.url.get_secret_value()
         self.__token = config.crm_token.get_secret_value()
@@ -105,6 +105,20 @@ class CRMRequest:
 
         raise ElementNotFoundError(service_name)
 
+    def _check_dates(self, date_to_check: datetime, employee_id: int) -> bool:
+        """
+        Returns True if date contains employee.
+        Due to API restrictions, getSchedule method does not take into account that all times can be busy
+        """
+        params = {"date": date_to_check.strftime('%Y-%m-%d')}
+        all_times: ScheduleData = self._get_parsed_data(self._time_url,
+                                                        ScheduleData,
+                                                        params=params)
+
+        return employee_id in all_times.employees
+
+
+class CrmRequest(CrmRequestBackend):
     def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
         picked_categories = []
@@ -138,18 +152,6 @@ class CRMRequest:
                 employees.append(full_name)
 
         return employees
-
-    def _check_dates(self, date_to_check: datetime, employee_id: int) -> bool:
-        """
-        Returns True if date contains employee.
-        Due to API restrictions, getSchedule method does not take into account that all times can be busy
-        """
-        params = {"date": date_to_check.strftime('%Y-%m-%d')}
-        all_times: ScheduleData = self._get_parsed_data(self._time_url,
-                                                        ScheduleData,
-                                                        params=params)
-
-        return employee_id in all_times.employees
 
     def get_raw_dates(self, employee_name: str) -> list[datetime]:
         """Returns list of free dates of an employee in datetime format"""
@@ -188,9 +190,3 @@ class CRMRequest:
                 start_time += timedelta(minutes=30)
 
         return free_times
-
-
-if __name__ == '__main__':
-    name = 'Османов Ильяс Нариманович'
-    req = CRMRequest()
-    print(req.get_times(datetime.now(), name))
