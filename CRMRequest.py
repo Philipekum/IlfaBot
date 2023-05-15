@@ -168,10 +168,16 @@ class CRMRequest:
         free_times = []
         employee_id = self._get_employee_id(employee_name)
 
+        if not isinstance(free_date, datetime):
+            raise ElementNotFoundError(free_date)
+
         params = {"date": free_date.strftime('%Y-%m-%d')}
         schedule_data: ScheduleData = self._get_parsed_data(url=self._time_url,
                                                             model=ScheduleData,
                                                             params=params)
+
+        if employee_id not in schedule_data.employees:
+            raise ElementNotFoundError(employee_name)
 
         for time_intervals in schedule_data.employees.get(employee_id):
             start_time = datetime.combine(free_date, time_intervals.start_time)
@@ -187,4 +193,4 @@ class CRMRequest:
 if __name__ == '__main__':
     name = 'Османов Ильяс Нариманович'
     req = CRMRequest()
-    print(req.get_services())
+    print(req.get_times(datetime.now(), name))
