@@ -1,5 +1,6 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup
+from datetime import datetime
 
 
 def main_kb() -> ReplyKeyboardMarkup:
@@ -51,6 +52,28 @@ def promo_kb() -> InlineKeyboardMarkup:
 def listed_kb(elements: list[str], col: int = 1) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     for element in elements:
+        kb.button(text=element)
+
+    kb.adjust(col)
+
+    return kb.as_markup(resize_keyboard=True)
+
+
+def listed_kb_dates(elements: list[datetime], col: int = 1) -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for element in elements:
+        element = element.strftime('%d.%m.%y')
+        kb.button(text=element)
+
+    kb.adjust(col)
+
+    return kb.as_markup(resize_keyboard=True)
+
+
+def listed_kb_times(elements: list[datetime], col: int = 1) -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for element in elements:
+        element = element.strftime('%H:%M')
         kb.button(text=element)
 
     kb.adjust(col)

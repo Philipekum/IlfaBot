@@ -153,7 +153,7 @@ class CrmRequest(CrmRequestBackend):
 
         return employees
 
-    def get_raw_dates(self, employee_name: str) -> list[datetime]:
+    def get_dates(self, employee_name: str) -> list[datetime]:
         """Returns list of free dates of an employee in datetime format"""
         employee_id = self._get_employee_id(employee_name)
         data = self._get_parsed_data(self._dates_url, Date)
@@ -161,7 +161,7 @@ class CrmRequest(CrmRequestBackend):
         for free_date, ids in data.items():
             if employee_id in ids:
                 if self._check_dates(free_date, employee_id):
-                    free_dates.append(free_date)
+                    free_dates.append(free_date.date())
 
         return free_dates
 
