@@ -161,7 +161,8 @@ class CrmRequest:
         return free_times
 
     @staticmethod
-    def format_phone_number(phone_number):
+    def format_phone_number(phone_number: str) -> str:
+        """Returns telephone number formated to +7(xxx)xxx-xx-xx"""
         cleaned_number = re.sub(r'\D', '', phone_number)
 
         if cleaned_number.startswith("7") and len(cleaned_number) == 11:
@@ -175,6 +176,7 @@ class CrmRequest:
 
     def post_data_collector(self, user_name: str, telephone: str, comment: str, picked_employee: str,
                             picked_service: str, picked_date: datetime, picked_time: datetime) -> PostData:
+        """Returns verified PostData for post-request"""
 
         user_name = user_name.title().split(" ")
         firstname, surname, patronymic = [user_name.pop(0), user_name.pop(0), " ".join(user_name)]
@@ -204,6 +206,7 @@ class CrmRequest:
         return data
 
     def post_data(self, data: PostData):
+        """Returns response of a post-request"""
         data = data.dict()
         response = r.post(url=self._post_url, data=data)
 
