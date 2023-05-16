@@ -1,5 +1,6 @@
-from unittest import TestCase, skip
-from CrmRequest import CrmRequest, ElementNotFoundError
+from unittest import TestCase
+from CrmRequest import CrmRequest
+from exceptions import ElementNotFoundError
 from datetime import datetime, date
 
 
@@ -45,11 +46,11 @@ class TestGetEmployees(TestCRMRequest):
 
 class TestGetDates(TestCRMRequest):
     def test_get_dates(self):
-        self.req.get_raw_dates('Османов Ильяс Нариманович')
+        self.req.get_dates('Османов Ильяс Нариманович')
 
     def test_get_dates_wrong_name(self):
         try:
-            self.req.get_raw_dates('aboba')
+            self.req.get_dates('aboba')
 
         except ElementNotFoundError:
             pass
@@ -97,3 +98,22 @@ class TestGetTimes(TestCRMRequest):
 
         except ElementNotFoundError:
             pass
+
+
+class TestPostDataCollector(TestCRMRequest):
+    def test_post_data_collector(self):
+        self.req.post_data_collector('Иванов Иван Иванович', '+7(904)243-23-43', 'Позвони мне',
+                                     'Османов Ильяс Нариманович',
+                                     'Консультация врача-ортодонта кандидата медицинских наук',
+                                     datetime.now(),
+                                     datetime.now())
+
+    def test_post_data_collector_not_formated_number(self):
+        phone_numbers = ['79067288438', '+79067288438', '9067288438', '+7(906)7288438', '+7(906)728-84-38',
+                         '+7906728-84-38']
+        for phone_number in phone_numbers:
+            self.req.post_data_collector('Иванов Иван Иванович', phone_number, 'Позвони мне',
+                                         'Османов Ильяс Нариманович',
+                                         'Консультация врача-ортодонта кандидата медицинских наук',
+                                         datetime.now(),
+                                         datetime.now())

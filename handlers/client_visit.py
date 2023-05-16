@@ -130,6 +130,8 @@ async def confirm_visit(message: types.Message, state: FSMContext):
                               f'Ваше ФИО - {user_data["user_name"]}\n'
                               f'Ваш номер телефона - {user_data["phone_number"]}\n'
                               f'Ваш комментарий - {user_data["comment"]}')
+    print(user_data)
+    print(type(user_data))
 
 
 @router.message(ClientAction.end)

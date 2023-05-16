@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from datetime import datetime, time
 from typing import Any
 
@@ -67,3 +67,33 @@ class Schedule(BaseModel):
 class ScheduleData(BaseModel):
     employees: dict[int, list[Schedule]]
     org_work_time: Schedule = Field(..., alias='orgWorkTime', strptime=True)
+
+
+class Client(BaseModel):
+    firstname: str
+    surname: str
+    patronymic: str
+    telephone: constr(regex=r'^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$')
+    proccesingOfPersonalData: bool
+
+
+class VisitItem(BaseModel):
+    employeeId: str
+    serviceId: int
+    startTime: str
+
+
+class EmployeeRequest(BaseModel):
+    id: int
+
+
+class Visit(BaseModel):
+    date: str
+    comment: str
+
+
+class PostData(BaseModel):
+    client: Client
+    visitItems: list[VisitItem]
+    employee: EmployeeRequest
+    visit: Visit

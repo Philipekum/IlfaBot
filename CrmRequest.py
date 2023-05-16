@@ -1,20 +1,14 @@
 import requests as r
+import re
 from config import config
 import DataModel
-from DataModel import Category, Employee, Date, ScheduleData
+from DataModel import Category, Employee, Date, ScheduleData, PostData, VisitItem, EmployeeRequest, Visit, Client
 from pydantic import parse_obj_as, ValidationError
 from datetime import datetime, timedelta
+from exceptions import ElementNotFoundError
 
 
-class ElementNotFoundError(Exception):
-    def __init__(self, element):
-        self.element = element
-
-    def __str__(self):
-        return f'Element not found: {self.element}'
-
-
-class CrmRequestBackend:
+class CrmRequest:
     def __init__(self):
         self.__url = config.url.get_secret_value()
         self.__token = config.crm_token.get_secret_value()
@@ -23,33 +17,10 @@ class CrmRequestBackend:
         employee_url = f'{self.__url}getEmployees/{self.__token}'
         self._dates_url = f'{self.__url}getScheduleCache/{self.__token}'
         self._time_url = f'{self.__url}getSchedule/{self.__token}'
+        self._post_url = f'{self.__url}createVisit/{self.__token}'
 
         self._service_data = self._get_parsed_data(service_url, Category)
         self._employee_data = self._get_parsed_data(employee_url, Employee)
-
-        # self.post_data = {
-        #     "client": {
-        #         "firstname": "Иван",
-        #         "surname": "Иванов",
-        #         "patronymic": "",
-        #         "telephone": "+7(904)243-23-43",
-        #         "proccesingOfPersonalData": True
-        #     },
-        #     "visitItems": [
-        #         {
-        #             "employeeId": "2",
-        #             "serviceId": 163,
-        #             "startTime": "14:00"
-        #         }
-        #     ],
-        #     "employee": {
-        #         "id": 0
-        #     },
-        #     "visit": {
-        #         "date": "2022-01-28",
-        #         "comment": "Позвоните мне"
-        #     }
-        # }
 
     @staticmethod
     def _get_parsed_data(url: str, model: DataModel.Any, params: dict = None) -> DataModel.Any:
@@ -117,8 +88,6 @@ class CrmRequestBackend:
 
         return employee_id in all_times.employees
 
-
-class CrmRequest(CrmRequestBackend):
     def get_categories(self) -> list[str]:
         """Returns all service categories as a list"""
         picked_categories = []
@@ -190,3 +159,52 @@ class CrmRequest(CrmRequestBackend):
                 start_time += timedelta(minutes=30)
 
         return free_times
+
+    @staticmethod
+    def format_phone_number(phone_number):
+        cleaned_number = re.sub(r'\D', '', phone_number)
+
+        if cleaned_number.startswith("7") and len(cleaned_number) == 11:
+            formatted_number = re.sub(r'^7(\d{3})(\d{3})(\d{2})(\d{2})$', r'+7(\1)\2-\3-\4', cleaned_number)
+        elif len(cleaned_number) == 10:
+            formatted_number = re.sub(r'^(\d{3})(\d{3})(\d{2})(\d{2})$', r'+7(\1)\2-\3-\4', cleaned_number)
+        else:
+            raise ElementNotFoundError(phone_number)
+
+        return formatted_number
+
+    def post_data_collector(self, user_name: str, telephone: str, comment: str, picked_employee: str,
+                            picked_service: str, picked_date: datetime, picked_time: datetime) -> PostData:
+
+        user_name = user_name.title().split(" ")
+        firstname, surname, patronymic = [user_name.pop(0), user_name.pop(0), " ".join(user_name)]
+        telephone = self.format_phone_number(telephone)
+        client_data = Client(firstname=firstname,
+                             surname=surname,
+                             patronymic=patronymic,
+                             telephone=telephone,
+                             proccesingOfPersonalData=True)
+
+        employee_id = self._get_employee_id(picked_employee)
+        service_id = self._get_service_id(picked_service)
+        visit_item_data = VisitItem(employeeId=employee_id,
+                                    serviceId=str(service_id),
+                                    startTime=datetime.strftime(picked_time, '%H:%M'))
+
+        employee_data = EmployeeRequest(id=employee_id)
+
+        visit_data = Visit(date=datetime.strftime(picked_date, '%Y-%m-%d'),
+                           comment=comment)
+
+        data: PostData = PostData(client=client_data,
+                                  visitItems=[visit_item_data],
+                                  employee=employee_data,
+                                  visit=visit_data)
+
+        return data
+
+    def post_data(self, data: PostData):
+        data = data.dict()
+        response = r.post(url=self._post_url, data=data)
+
+        return response
