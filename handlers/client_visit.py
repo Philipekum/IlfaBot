@@ -5,6 +5,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
 from CrmRequest import CrmRequest
 from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times
+import message_text
+
 
 router = Router()
 
@@ -34,7 +36,7 @@ async def show_categories(message: types.Message, state: FSMContext):
     await state.update_data(crm=crm)
 
     await state.set_state(ClientAction.choose_category)
-    await message.answer(text='Выбрать категорию услуг:\n', reply_markup=listed_kb(crm.get_categories()))
+    await message.answer(text=message_text.choose_category, reply_markup=listed_kb(crm.get_categories()))
 
 
 @router.message(ClientAction.choose_category)
@@ -44,7 +46,7 @@ async def show_services(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_service)
-    await message.answer(text='Выбрать услугу:\n', reply_markup=listed_kb(crm.get_services(picked_category)))
+    await message.answer(text=message_text.choose_service, reply_markup=listed_kb(crm.get_services(picked_category)))
 
 
 @router.message(ClientAction.choose_service)
@@ -55,7 +57,7 @@ async def show_doctors(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_doctor)
-    await message.answer(text='Выбрать врача:\n', reply_markup=listed_kb(crm.get_employees(picked_service)))
+    await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb(crm.get_employees(picked_service)))
 
 
 @router.message(ClientAction.choose_doctor)
@@ -66,7 +68,7 @@ async def show_dates(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_date)
-    await message.answer(text='Выбрать дату:\n', reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
+    await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
 
 
 @router.message(ClientAction.choose_date)
@@ -77,7 +79,7 @@ async def show_times(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_name)
-    await message.answer(text='Выбрать время:\n',
+    await message.answer(text=message_text.ask_name,
                          reply_markup=listed_kb_times(crm.get_times(picked_date, user_data['picked_employee']), col=4))
 
 
@@ -89,7 +91,7 @@ async def ask_name(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_phone)
-    await message.answer(text='Введите ФИО:\n')
+    await message.answer(text=message_text.ask_comment)
 
 
 @router.message(ClientAction.ask_phone)
@@ -100,7 +102,7 @@ async def ask_phone(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_comment)
-    await message.answer(text='Введите номер телефона:\n')
+    await message.answer(text=message_text.ask_comment)
 
 
 @router.message(ClientAction.ask_comment)
@@ -111,7 +113,7 @@ async def ask_comment(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.confirm_data)
-    await message.answer(text=f'Введите комментарий:\n')
+    await message.answer(text=message_text.confirm_data)
 
 
 @router.message(ClientAction.confirm_data)
@@ -122,19 +124,10 @@ async def confirm_visit(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.end)
-    await message.answer(text=f'Проверьте данные:\n'
-                              f'Выбранная услуга - {user_data["picked_service"]}\n'
-                              f'Выбранный врач - {user_data["picked_employee"]}\n'
-                              f'Выбранная дата - {datetime.strftime(user_data["picked_date"], "%d.%m.%Y")}\n'
-                              f'Выбранное время - {datetime.strftime(user_data["picked_time"], "%H:%M")}\n'
-                              f'Ваше ФИО - {user_data["user_name"]}\n'
-                              f'Ваш номер телефона - {user_data["phone_number"]}\n'
-                              f'Ваш комментарий - {user_data["comment"]}')
-    print(user_data)
-    print(type(user_data))
+    await message.answer(text=message_text.end)
 
 
 @router.message(ClientAction.end)
 async def end(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer(text='Ура!')
+    await message.answer(text=message_text.final)
