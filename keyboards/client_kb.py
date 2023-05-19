@@ -1,23 +1,15 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup
+from datetime import datetime
 
 
 def main_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    button_text = ['Запись', 'Мой аккаунт', 'Акции', 'О нас', 'Помощь']
+    button_text = ['Запись первичная', 'Запись', 'О нас', 'Администратор', 'Помощь']
     for text in button_text:
         kb.button(text=text)
     kb.adjust(2)
     return kb.as_markup(resize_keyboard=True)
-
-
-def first_or_second_kb() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardBuilder()
-    kb.button(text='Первичный')
-    kb.button(text='Повторный')
-    kb.button(text='Отмена')
-    kb.adjust(2)
-    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
 def share_contact_kb() -> ReplyKeyboardMarkup:
@@ -42,12 +34,6 @@ def info_kb() -> InlineKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def promo_kb() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    kb.button(text='Об акциях', url='https://ilfa-dent.ru/aktsii')
-    return kb.as_markup(resize_keyboard=True)
-
-
 def listed_kb(elements: list[str], col: int = 1) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     for element in elements:
@@ -55,4 +41,26 @@ def listed_kb(elements: list[str], col: int = 1) -> ReplyKeyboardMarkup:
 
     kb.adjust(col)
 
-    return kb.as_markup(resize_keyboard=True)
+    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def listed_kb_dates(elements: list[datetime], col: int = 1) -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for element in elements:
+        element = element.strftime('%d.%m.%y')
+        kb.button(text=element)
+
+    kb.adjust(col)
+
+    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def listed_kb_times(elements: list[datetime], col: int = 1) -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for element in elements:
+        element = element.strftime('%H:%M')
+        kb.button(text=element)
+
+    kb.adjust(col)
+
+    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)

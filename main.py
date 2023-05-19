@@ -1,9 +1,9 @@
 from asyncio import run
 from aiogram import Dispatcher, Bot
 from config import config
-from handlers import client_cmds, client_first_visit, client_second_visit, client_authorization, client_visit
+from handlers import client_cmds, client_visit
 from aiogram.types import BotCommand
-
+from aiogram.utils.chat_action import ChatActionMiddleware
 import logging
 
 
@@ -18,12 +18,12 @@ async def set_commands(bot: Bot):
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(config.bot_token.get_secret_value(), parse_mode='html')
+    bot = Bot(config.bot_token.get_secret_value(), parse_mode='Markdown')
     dp = Dispatcher()
-    # for file in [client_cmds, client_first_visit, client_second_visit, client_authorization]:
-    #     dp.include_router(file.router)
-    dp.include_router(client_visit.router)
+    for file in [client_cmds, client_visit]:
+        dp.include_router(file.router)
 
+    dp.message.middleware(ChatActionMiddleware())
     await set_commands(bot)
 
     await dp.start_polling(bot, skip_updates=True)
