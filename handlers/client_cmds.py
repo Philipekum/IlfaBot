@@ -33,7 +33,7 @@ async def cmd_back(message: types.Message, state: FSMContext):
         await message.answer(text=message_text.commaned_canceled, reply_markup=main_kb())
 
 
-@router.message(Text(['инфо', 'о нас'], ignore_case=True))
+@router.message(Text(['инфо'], ignore_case=True))
 async def cmd_info(message: types.Message):
     await message.answer(text=message_text.info,
                          reply_markup=info_kb())
