@@ -5,7 +5,7 @@ from datetime import datetime
 
 def main_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    button_text = ['Запись первичная', 'Запись', 'О нас', 'Администратор', 'Помощь']
+    button_text = ['Запись первичная 📅', 'Запись 📆', 'О нас ℹ️', 'Администратор 👩🏼‍💻', 'Помощь ❓']
     for text in button_text:
         kb.button(text=text)
     kb.adjust(2)

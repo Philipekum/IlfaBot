@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
 from CrmRequest import CrmRequest
-from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times
+from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb
 import message_text
 
 
@@ -68,7 +68,7 @@ async def show_dates(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_date)
-    await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
+    await message.answer(text=message_text.choose_date, reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
 
 
 @router.message(ClientAction.choose_date)
@@ -102,7 +102,7 @@ async def ask_phone(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_comment)
-    await message.answer(text=message_text.ask_comment)
+    await message.answer(text=message_text.ask_comment, reply_markup=share_contact_kb())
 
 
 @router.message(ClientAction.ask_comment)
