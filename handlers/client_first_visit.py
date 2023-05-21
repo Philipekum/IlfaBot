@@ -3,7 +3,7 @@ from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
-from keyboards.client_kb import share_contact_kb, yes_or_no_kb
+from keyboards.client_kb import share_contact_kb
 
 router = Router()
 
@@ -71,8 +71,7 @@ async def got_number(message: types.Message, state: FSMContext):
              f'<b>ФИО</b>: <u>{" ".join(map(str, user_data["user_name"]))}</u>\n'
              f'<b>Дата рождения</b>: <u>{user_data["user_birthday"]}</u>\n'
              f'<b>Номер телефона</b>: <u>{user_data["user_number"]}</u>\n\n'
-             f'<i>Все верно?</i>',
-        reply_markup=yes_or_no_kb())
+             f'<i>Все верно?</i>')
 
 
 @router.callback_query(Text(text='yes'))

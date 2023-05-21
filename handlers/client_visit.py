@@ -3,10 +3,10 @@ from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
+from exceptions import ElementNotFoundError
 from CrmRequest import CrmRequest
-from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb
+from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb, cancel_kb
 import message_text
-
 
 router = Router()
 
@@ -16,6 +16,7 @@ class ClientAction(StatesGroup):
     choose_service = State()
     choose_doctor = State()
     choose_date = State()
+    choose_time = State()
     ask_name = State()
     ask_phone = State()
     ask_comment = State()
@@ -27,10 +28,11 @@ async def get_crm_and_data(state: FSMContext):
     """Returns CrmRequest instance and user_data of state. Just to avoid repeated code"""
     user_data = await state.get_data()
     crm = user_data['crm']
+
     return crm, user_data
 
 
-@router.message(Text('Запись', ignore_case=True))
+@router.message(Text(startswith='Запись', ignore_case=True))
 async def show_categories(message: types.Message, state: FSMContext):
     crm = CrmRequest()
     await state.update_data(crm=crm)
@@ -68,7 +70,8 @@ async def show_dates(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_date)
-    await message.answer(text=message_text.choose_date, reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
+    await message.answer(text=message_text.choose_date,
+                         reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
 
 
 @router.message(ClientAction.choose_date)
@@ -78,56 +81,76 @@ async def show_times(message: types.Message, state: FSMContext):
 
     crm, user_data = await get_crm_and_data(state)
 
-    await state.set_state(ClientAction.ask_name)
-    await message.answer(text=message_text.ask_name,
+    await state.set_state(ClientAction.choose_time)
+    await message.answer(text=message_text.choose_time,
                          reply_markup=listed_kb_times(crm.get_times(picked_date, user_data['picked_employee']), col=4))
 
 
-@router.message(ClientAction.ask_name)
+@router.message(ClientAction.choose_time)
 async def ask_name(message: types.Message, state: FSMContext):
     picked_time = datetime.strptime(message.text, '%H:%M')
     await state.update_data(picked_time=picked_time)
 
     crm, user_data = await get_crm_and_data(state)
 
-    await state.set_state(ClientAction.ask_phone)
-    await message.answer(text=message_text.ask_comment)
+    await state.set_state(ClientAction.ask_name)
+    await message.answer(text=message_text.ask_name)
 
 
-@router.message(ClientAction.ask_phone)
+@router.message(ClientAction.ask_name)
 async def ask_phone(message: types.Message, state: FSMContext):
     user_name = message.text.title()
     await state.update_data(user_name=user_name)
 
     crm, user_data = await get_crm_and_data(state)
 
-    await state.set_state(ClientAction.ask_comment)
-    await message.answer(text=message_text.ask_comment, reply_markup=share_contact_kb())
+    await state.set_state(ClientAction.ask_phone)
+    await message.answer(text=message_text.ask_phone, reply_markup=share_contact_kb())
+
+
+@router.message(ClientAction.ask_phone)
+async def ask_comment(message: types.Message, state: FSMContext):
+    crm, user_data = await get_crm_and_data(state)
+
+    try:
+        if hasattr(message.contact, 'phone_number'):
+            user_number = crm.format_phone_number(message.contact.phone_number)
+
+        else:
+            user_number = crm.format_phone_number(message.text)
+
+    except ElementNotFoundError:
+        await message.answer(text='Номер телефона не распознан!\nПопробуйте еще раз!')
+        await state.set_state(ClientAction.ask_phone)
+
+    else:
+        await state.update_data(user_number=user_number)
+
+        await state.set_state(ClientAction.ask_comment)
+        await message.answer(text=message_text.ask_comment, reply_markup=cancel_kb())
 
 
 @router.message(ClientAction.ask_comment)
-async def ask_comment(message: types.Message, state: FSMContext):
-    phone_number = message.text
-    await state.update_data(phone_number=phone_number)
-
-    crm, user_data = await get_crm_and_data(state)
-
-    await state.set_state(ClientAction.confirm_data)
-    await message.answer(text=message_text.confirm_data)
-
-
-@router.message(ClientAction.confirm_data)
 async def confirm_visit(message: types.Message, state: FSMContext):
     comment = message.text
     await state.update_data(comment=comment)
 
     crm, user_data = await get_crm_and_data(state)
 
-    await state.set_state(ClientAction.end)
-    await message.answer(text=message_text.end)
+    await state.set_state(ClientAction.confirm_data)
+    await message.answer(text=message_text.confirm_data.format(user_data["picked_service"],
+                                                               user_data["picked_employee"],
+                                                               datetime.strftime(user_data["picked_date"], "%d.%m.%Y"),
+                                                               datetime.strftime(user_data["picked_time"], "%H:%M"),
+                                                               user_data["user_name"],
+                                                               user_data["user_number"],
+                                                               user_data["comment"]),
+                         reply_markup=cancel_kb())
 
 
-@router.message(ClientAction.end)
+@router.message(ClientAction.confirm_data)
 async def end(message: types.Message, state: FSMContext):
+    confirm = message.text
+
     await state.clear()
-    await message.answer(text=message_text.final)
+    await message.answer(text=message_text.final, reply_markup=cancel_kb())

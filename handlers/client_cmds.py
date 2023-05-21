@@ -16,14 +16,14 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 
 @router.message(Command('help'))
-@router.message(Text('Помощь', ignore_case=True))
+@router.message(Text(startswith='Помощь', ignore_case=True))
 async def cmd_help(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(text=message_text.help_text,
                          reply_markup=main_kb())
 
 
-@router.message(Text('Отмена', ignore_case=True))
+@router.message(Text(startswith='Отмена', ignore_case=True))
 @router.message(Command('cancel'))
 async def cmd_back(message: types.Message, state: FSMContext):
     if await state.get_state() is None:
@@ -33,7 +33,7 @@ async def cmd_back(message: types.Message, state: FSMContext):
         await message.answer(text=message_text.commaned_canceled, reply_markup=main_kb())
 
 
-@router.message(Text(['инфо'], ignore_case=True))
+@router.message(Text(startswith=('Инфо', 'О нас'), ignore_case=True))
 async def cmd_info(message: types.Message):
     await message.answer(text=message_text.info,
                          reply_markup=info_kb())

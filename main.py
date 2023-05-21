@@ -12,6 +12,7 @@ async def set_commands(bot: Bot):
         commands=[
             BotCommand(command='start', description='Главное меню'),
             BotCommand(command='help', description='Помощь'),
+            BotCommand(command='cancel', description='Отмена действия')
         ]
     )
 
@@ -26,7 +27,7 @@ async def main():
     dp.message.middleware(ChatActionMiddleware())
     await set_commands(bot)
 
-    await dp.start_polling(bot, skip_updates=True)
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
