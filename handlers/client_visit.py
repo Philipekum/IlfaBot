@@ -5,8 +5,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
 from exceptions import ElementNotFoundError
 from CrmRequest import CrmRequest
-from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb, cancel_kb
+from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb, cancel_kb, confirm_kb, \
+    again_kb
 import message_text
+import asyncio
 
 router = Router()
 
@@ -22,6 +24,7 @@ class ClientAction(StatesGroup):
     ask_comment = State()
     confirm_data = State()
     end = State()
+    again = State()
 
 
 async def get_crm_and_data(state: FSMContext):
@@ -38,6 +41,8 @@ async def show_categories(message: types.Message, state: FSMContext):
     await state.update_data(crm=crm)
 
     await state.set_state(ClientAction.choose_category)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.choose_category, reply_markup=listed_kb(crm.get_categories()))
 
 
@@ -48,6 +53,8 @@ async def show_services(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_service)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.choose_service, reply_markup=listed_kb(crm.get_services(picked_category)))
 
 
@@ -59,6 +66,8 @@ async def show_doctors(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_doctor)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb(crm.get_employees(picked_service)))
 
 
@@ -70,6 +79,8 @@ async def show_dates(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_date)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.choose_date,
                          reply_markup=listed_kb_dates(crm.get_dates(picked_employee), col=3))
 
@@ -82,6 +93,8 @@ async def show_times(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.choose_time)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.choose_time,
                          reply_markup=listed_kb_times(crm.get_times(picked_date, user_data['picked_employee']), col=4))
 
@@ -94,6 +107,8 @@ async def ask_name(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_name)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.ask_name)
 
 
@@ -105,6 +120,8 @@ async def ask_phone(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.ask_phone)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.ask_phone, reply_markup=share_contact_kb())
 
 
@@ -127,6 +144,8 @@ async def ask_comment(message: types.Message, state: FSMContext):
         await state.update_data(user_number=user_number)
 
         await state.set_state(ClientAction.ask_comment)
+        await asyncio.sleep(0.5)
+
         await message.answer(text=message_text.ask_comment, reply_markup=cancel_kb())
 
 
@@ -138,6 +157,8 @@ async def confirm_visit(message: types.Message, state: FSMContext):
     crm, user_data = await get_crm_and_data(state)
 
     await state.set_state(ClientAction.confirm_data)
+    await asyncio.sleep(0.5)
+
     await message.answer(text=message_text.confirm_data.format(user_data["picked_service"],
                                                                user_data["picked_employee"],
                                                                datetime.strftime(user_data["picked_date"], "%d.%m.%Y"),
@@ -145,12 +166,29 @@ async def confirm_visit(message: types.Message, state: FSMContext):
                                                                user_data["user_name"],
                                                                user_data["user_number"],
                                                                user_data["comment"]),
-                         reply_markup=cancel_kb())
+                         reply_markup=confirm_kb())
 
 
 @router.message(ClientAction.confirm_data)
-async def end(message: types.Message, state: FSMContext):
-    confirm = message.text
+async def visit_confirmed(message: types.Message, state: FSMContext):
+    if 'Да' in message.text:
+        await state.clear()
+        await asyncio.sleep(0.5)
 
-    await state.clear()
-    await message.answer(text=message_text.final, reply_markup=cancel_kb())
+        await message.answer(text=message_text.confirmed)
+
+    elif 'Нет' in message.text:
+        await state.set_state(ClientAction.again)
+        await asyncio.sleep(0.5)
+
+        await message.answer(text=message_text.again, reply_markup=again_kb())
+
+
+@router.message(ClientAction.again)
+async def end(message: types.Message, state: FSMContext):
+    if 'Да' in message.text:
+        await state.set_state(ClientAction.choose_category)
+        crm, user_data = await get_crm_and_data(state)
+        await asyncio.sleep(0.5)
+
+        await message.answer(text=message_text.choose_category, reply_markup=listed_kb(crm.get_categories()))
