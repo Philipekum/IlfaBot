@@ -1,10 +1,11 @@
-import requests as r
 import re
+from datetime import datetime, timedelta
+
+from pydantic import parse_obj_as, ValidationError
+import requests as r
+
 from config import config
 import DataModel
-from DataModel import Category, Employee, Date, ScheduleData, PostData, VisitItem, EmployeeRequest, Visit, Client
-from pydantic import parse_obj_as, ValidationError
-from datetime import datetime, timedelta
 from exceptions import ElementNotFoundError
 
 
@@ -19,8 +20,8 @@ class CrmRequest:
         self._time_url = f'{self.__url}getSchedule/{self.__token}'
         self._post_url = f'{self.__url}createVisit/{self.__token}'
 
-        self._service_data = self._get_parsed_data(service_url, Category)
-        self._employee_data = self._get_parsed_data(employee_url, Employee)
+        self._service_data = self._get_parsed_data(service_url, DataModel.Category)
+        self._employee_data = self._get_parsed_data(employee_url, DataModel.Employee)
 
     @staticmethod
     def _get_parsed_data(url: str, model: DataModel.Any, params: dict = None) -> DataModel.Any:
@@ -82,9 +83,9 @@ class CrmRequest:
         Due to API restrictions, getSchedule method does not take into account that all times can be busy
         """
         params = {"date": date_to_check.strftime('%Y-%m-%d')}
-        all_times: ScheduleData = self._get_parsed_data(self._time_url,
-                                                        ScheduleData,
-                                                        params=params)
+        all_times: DataModel.ScheduleData = self._get_parsed_data(self._time_url,
+                                                                  DataModel.ScheduleData,
+                                                                  params=params)
 
         return employee_id in all_times.employees
 
@@ -125,7 +126,7 @@ class CrmRequest:
     def get_dates(self, employee_name: str) -> list[datetime]:
         """Returns list of free dates of an employee in datetime format"""
         employee_id = self._get_employee_id(employee_name)
-        data = self._get_parsed_data(self._dates_url, Date)
+        data = self._get_parsed_data(self._dates_url, DataModel.Date)
         free_dates = []
         for free_date, ids in data.items():
             if employee_id in ids:
@@ -143,9 +144,9 @@ class CrmRequest:
             raise ElementNotFoundError(free_date)
 
         params = {"date": free_date.strftime('%Y-%m-%d')}
-        schedule_data: ScheduleData = self._get_parsed_data(url=self._time_url,
-                                                            model=ScheduleData,
-                                                            params=params)
+        schedule_data: DataModel.ScheduleData = self._get_parsed_data(url=self._time_url,
+                                                                      model=DataModel.ScheduleData,
+                                                                      params=params)
 
         if employee_id not in schedule_data.employees:
             raise ElementNotFoundError(employee_name)
@@ -175,37 +176,37 @@ class CrmRequest:
         return formatted_number
 
     def post_data_collector(self, user_name: str, telephone: str, comment: str, picked_employee: str,
-                            picked_service: str, picked_date: datetime, picked_time: datetime) -> PostData:
+                            picked_service: str, picked_date: datetime, picked_time: datetime) -> DataModel.PostData:
         """Returns verified PostData for post-request"""
 
         user_name = user_name.title().split(" ")
         firstname, surname, patronymic = [user_name.pop(0), user_name.pop(0), " ".join(user_name)]
         telephone = self.format_phone_number(telephone)
-        client_data = Client(firstname=firstname,
-                             surname=surname,
-                             patronymic=patronymic,
-                             telephone=telephone,
-                             proccesingOfPersonalData=True)
+        client_data = DataModel.Client(firstname=firstname,
+                                       surname=surname,
+                                       patronymic=patronymic,
+                                       telephone=telephone,
+                                       proccesingOfPersonalData=True)
 
         employee_id = self._get_employee_id(picked_employee)
         service_id = self._get_service_id(picked_service)
-        visit_item_data = VisitItem(employeeId=employee_id,
-                                    serviceId=str(service_id),
-                                    startTime=datetime.strftime(picked_time, '%H:%M'))
+        visit_item_data = DataModel.VisitItem(employeeId=employee_id,
+                                              serviceId=str(service_id),
+                                              startTime=datetime.strftime(picked_time, '%H:%M'))
 
-        employee_data = EmployeeRequest(id=employee_id)
+        employee_data = DataModel.EmployeeRequest(id=employee_id)
 
-        visit_data = Visit(date=datetime.strftime(picked_date, '%Y-%m-%d'),
-                           comment=comment)
+        visit_data = DataModel.Visit(date=datetime.strftime(picked_date, '%Y-%m-%d'),
+                                     comment=comment)
 
-        data: PostData = PostData(client=client_data,
-                                  visitItems=[visit_item_data],
-                                  employee=employee_data,
-                                  visit=visit_data)
+        data: DataModel.PostData = DataModel.PostData(client=client_data,
+                                                      visitItems=[visit_item_data],
+                                                      employee=employee_data,
+                                                      visit=visit_data)
 
         return data
 
-    def post_data(self, data: PostData):
+    def post_data(self, data: DataModel.PostData):
         """Returns response of a post-request"""
         data = data.dict()
         response = r.post(url=self._post_url, data=data)
