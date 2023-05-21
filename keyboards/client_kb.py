@@ -74,19 +74,11 @@ def listed_kb_times(elements: list[datetime], col: int = 1) -> ReplyKeyboardMark
     return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
-def confirm_kb() -> ReplyKeyboardMarkup:
+def confirm_kb(no_required=False) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     kb.button(text='Да ✅')
-    kb.button(text='Нет 🔄')
-    kb.button(text='Отмена ❌')
-    kb.adjust(2)
-
-    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
-
-
-def again_kb() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardBuilder()
-    kb.button(text='Да ✅')
+    if no_required:
+        kb.button(text='Нет 🔄')
     kb.button(text='Отмена ❌')
     kb.adjust(2)
 

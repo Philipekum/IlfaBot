@@ -1,7 +1,7 @@
 from asyncio import run
 from aiogram import Dispatcher, Bot
 from config import config
-from handlers import client_cmds, client_visit
+from handlers import client_cmds, client_visit, client_consultation
 from aiogram.types import BotCommand
 from aiogram.utils.chat_action import ChatActionMiddleware
 import logging
@@ -21,7 +21,7 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     bot = Bot(config.bot_token.get_secret_value(), parse_mode='Markdown')
     dp = Dispatcher()
-    for file in [client_cmds, client_visit]:
+    for file in [client_cmds, client_visit, client_consultation]:
         dp.include_router(file.router)
 
     dp.message.middleware(ChatActionMiddleware())
