@@ -5,7 +5,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Text
 from exceptions import ElementNotFoundError
 from CrmRequest import CrmRequest
-from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb, cancel_kb, confirm_kb
+from keyboards.client_kb import listed_kb, listed_kb_dates, listed_kb_times, share_contact_kb, cancel_kb, confirm_kb, main_kb
 import message_text
 import asyncio
 
@@ -108,7 +108,7 @@ async def ask_name(message: types.Message, state: FSMContext):
     await state.set_state(ClientAction.ask_name)
     await asyncio.sleep(0.5)
 
-    await message.answer(text=message_text.ask_name)
+    await message.answer(text=message_text.ask_name, reply_markup=cancel_kb())
 
 
 @router.message(ClientAction.ask_name)
@@ -136,8 +136,8 @@ async def ask_comment(message: types.Message, state: FSMContext):
             user_number = crm.format_phone_number(message.text)
 
     except ElementNotFoundError:
-        await message.answer(text='Номер телефона не распознан!\nПопробуйте еще раз!')
         await state.set_state(ClientAction.ask_phone)
+        await message.answer(text='Номер телефона не распознан!\nПопробуйте еще раз!', reply_markup=share_contact_kb())
 
     else:
         await state.update_data(user_number=user_number)
@@ -174,7 +174,8 @@ async def visit_confirmed(message: types.Message, state: FSMContext):
         await state.clear()
         await asyncio.sleep(0.5)
 
-        await message.answer(text=message_text.confirmed)
+        await message.answer(text=message_text.confirmed,
+                             reply_markup=main_kb())
 
     elif 'Нет' in message.text:
         await state.set_state(ClientAction.again)

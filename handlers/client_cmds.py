@@ -30,10 +30,17 @@ async def cmd_back(message: types.Message, state: FSMContext):
         await message.answer(text=message_text.no_active_commands_to_cancel, reply_markup=main_kb())
 
     else:
+        await state.clear()
         await message.answer(text=message_text.commaned_canceled, reply_markup=main_kb())
 
 
 @router.message(Text(startswith=('Инфо', 'О нас'), ignore_case=True))
-async def cmd_info(message: types.Message):
+async def info_message(message: types.Message):
     await message.answer(text=message_text.info,
                          reply_markup=info_kb())
+
+
+@router.message(Text(startswith='Администратор', ignore_case=True))
+async def admin_message(message: types.Message):
+    await message.answer(text=message_text.admin,
+                         reply_markup=types.reply_keyboard_remove.ReplyKeyboardRemove())
