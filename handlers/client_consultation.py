@@ -29,13 +29,14 @@ class ConsultationProcess(StatesGroup):
 @router.message(Text(startswith='Консультация', ignore_case=True))
 async def show_employees(message: types.Message, state: FSMContext):
     crm = CrmRequest()
+    picked_service = 'Прием (осмотр, консультация) врача-стоматолога первичный'
     await state.update_data(crm=crm)
-    await state.update_data(picked_service='Прием (осмотр, консультация) врача-стоматолога первичный')
+    await state.update_data(picked_service=picked_service)
 
     await state.set_state(ConsultationProcess.choose_doctor)
     await asyncio.sleep(0.5)
 
-    await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb(crm.get_employees()))
+    await message.answer(text=message_text.choose_doctor, reply_markup=listed_kb(crm.get_employees(picked_service)))
 
 
 @router.message(ConsultationProcess.choose_doctor)
