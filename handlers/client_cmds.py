@@ -44,4 +44,3 @@ async def info_message(message: types.Message):
 async def admin_message(message: types.Message):
     await message.answer(text=message_text.admin,
                          reply_markup=contact_kb())
-                         # reply_markup=types.reply_keyboard_remove.ReplyKeyboardRemove())
