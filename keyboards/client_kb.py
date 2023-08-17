@@ -1,6 +1,7 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup
 from datetime import datetime
+from config import config
 
 
 def main_kb() -> ReplyKeyboardMarkup:
@@ -33,6 +34,7 @@ def cancel_kb() -> ReplyKeyboardMarkup:
 def info_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     kb.button(text='Наш сайт', url='https://ilfa-dent.ru')
+
     return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
@@ -81,5 +83,13 @@ def confirm_kb(no_required=False) -> ReplyKeyboardMarkup:
         kb.button(text='Нет 🔄')
     kb.button(text='Отмена ❌')
     kb.adjust(2)
+
+    return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def contact_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Чат с администратором 👋',
+              url=f'https://t.me/{config.admin_username.get_secret_value()}')
 
     return kb.as_markup(resize_keyboard=True, one_time_keyboard=True)

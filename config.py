@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     bot_token: SecretStr
     crm_token: SecretStr
     url: SecretStr
+    admin_username: SecretStr
 
     class Config:
         env_file = '.env'
