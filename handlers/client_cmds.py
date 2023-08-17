@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command, Text
 from keyboards.client_kb import main_kb, info_kb, contact_kb
 import message_text
-
+from config import config
 
 router = Router()
 
@@ -43,4 +43,4 @@ async def info_message(message: types.Message):
 @router.message(Text(startswith='Администратор', ignore_case=True))
 async def admin_message(message: types.Message):
     await message.answer(text=message_text.admin,
-                         reply_markup=contact_kb())
+                         reply_markup=contact_kb(config.admin_username.get_secret_value()))
