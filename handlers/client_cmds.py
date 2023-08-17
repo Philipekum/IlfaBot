@@ -1,7 +1,7 @@
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command, Text
-from keyboards.client_kb import main_kb, info_kb
+from keyboards.client_kb import main_kb, info_kb, contact_kb
 import message_text
 
 
@@ -43,4 +43,4 @@ async def info_message(message: types.Message):
 @router.message(Text(startswith='Администратор', ignore_case=True))
 async def admin_message(message: types.Message):
     await message.answer(text=message_text.admin,
-                         reply_markup=types.reply_keyboard_remove.ReplyKeyboardRemove())
+                         reply_markup=contact_kb())
